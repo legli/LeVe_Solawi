@@ -26,9 +26,6 @@ manual.labs.english <- c(production = "Production",
                  potato="Potatoes",
                  Conventional="Conventional", 
                  CSA="CSA",
-                 avoidable="Avoidable",
-                 possiblyAvoidable="Possibly avoidable", 
-                 unavoidable="Unavoidable",
                  Ertrag_kg_qm = "Yield harvested",
                  deliveredYield ="Collected yield",
                  netYield = "Net yield",
@@ -51,22 +48,10 @@ Nachverwertung_Konsum[which(Nachverwertung_Konsum$calculation_basis=="kcal"),"ca
 Nachverwertung_Konsum[which(Nachverwertung_Konsum$calculation_basis=="prot"),"calculation_basis"] <- "Protein"
 Nachverwertung_Konsum[which(Nachverwertung_Konsum$calculation_basis=="fat"),"calculation_basis"] <- "Fat"
 
-dfHouseholdAvoidability <- Nachverwertung_Konsum[which(Nachverwertung_Konsum$calculation_basis!="g"&Nachverwertung_Konsum$Kultur%in%c("All_mean","fresh_mean","potato_mean","storable_mean")),c(1:(ncol(Nachverwertung_Konsum)-1))] %>% gather(Variable, Ratio, "ratio_gesamt":"ratio_unvermeidbar")
-dfHouseholdAvoidability$Kategorie_Beretta <- sapply(strsplit(dfHouseholdAvoidability$Kultur,"_"), `[`, 1)
-dfHouseholdAvoidability$Avoidability <- sapply(strsplit(dfHouseholdAvoidability$Variable,"_"), `[`, 2)
-dfHouseholdAvoidabilitySD <- Nachverwertung_Konsum[which(Nachverwertung_Konsum$calculation_basis!="g"&Nachverwertung_Konsum$Kultur%in%c("All_sd","fresh_sd","potato_sd","storable_sd")),c(1:(ncol(Nachverwertung_Konsum)-1))] %>% gather(Variable, Ratio, "ratio_gesamt":"ratio_unvermeidbar")
-names(dfHouseholdAvoidabilitySD)[ncol(dfHouseholdAvoidabilitySD)] <- "RatioSD"
-dfHouseholdAvoidabilitySD$Kategorie_Beretta <- sapply(strsplit(dfHouseholdAvoidabilitySD$Kultur,"_"), `[`, 1)
-dfHouseholdAvoidabilitySD$Avoidability <- sapply(strsplit(dfHouseholdAvoidabilitySD$Variable,"_"), `[`, 2)
-dfHouseholdAvoidability <- merge(dfHouseholdAvoidability[,c("calculation_basis","Avoidability","Kategorie_Beretta","Ratio")],dfHouseholdAvoidabilitySD[,c("calculation_basis","Avoidability","Kategorie_Beretta","RatioSD")])
-dfHouseholdAvoidability[which(dfHouseholdAvoidability$Avoidability=="vermeidbar"),"Avoidability"] <- "avoidable"
-dfHouseholdAvoidability[which(dfHouseholdAvoidability$Avoidability=="unklar"),"Avoidability"] <- "possiblyAvoidable"
-dfHouseholdAvoidability[which(dfHouseholdAvoidability$Avoidability=="unvermeidbar"),"Avoidability"] <- "unavoidable"
-dfHouseholdAvoidability$Stage <- "household"
-dfHouseholdAvoidability$Aspect <- "CSA"
-names(dfHouseholdAvoidability)[which(names(dfHouseholdAvoidability)=="calculation_basis")] <- "Nutrient"
-
-dfRatioHousehold <- dfHouseholdAvoidability[which(dfHouseholdAvoidability$Avoidability=="gesamt"&dfHouseholdAvoidability$Kategorie_Beretta=="All"),c("Aspect","Stage","Nutrient","Ratio","RatioSD")]
+dfRatioHousehold <- merge(Nachverwertung_Konsum[which(Nachverwertung_Konsum$Kultur=="All_mean"),2:3],Nachverwertung_Konsum[which(Nachverwertung_Konsum$Kultur=="All_sd"),2:3],by="calculation_basis")
+names(dfRatioHousehold) <- c("Nutrient","Ratio","RatioSD")
+dfRatioHousehold$Aspect <- "CSA"
+dfRatioHousehold$Stage <- "household"
 
 # merge
 dfAll <- merge(Nachverwertung_Produktion,Nachverwertung_Verteilstation,by=c("Solawi","Kultur"))
@@ -75,8 +60,8 @@ dfAll <- merge(dfAll,dfKategorienBeretta,by="Kultur")
 # dfAll[is.na(dfAll)] <- 0
 
 # calculate nutrients
-dfAllNutrients <- dfAll[,c("Solawi","Kultur","Kategorie_Beretta","Calories (kcal/100g)","Protein (g/100g)","Fat (g/100g)","Ertrag_kg","Ertrag_kg_qm","Ertrag_kg_geerntet_qm","Nachverwertung_kg_lieferbar","Nachverwertung_kg_essbar","Nachverwertung_kg_nichtEssbar","Nachverwertung_kg_total","Liefermenge_kg_VST","Nachverwertung_kg_VST")]
-names(dfAllNutrients) <- c("Solawi","Kultur","Kategorie_Beretta","Calories","Protein","Fat","Produktion","Ertrag","Ertrag_geerntet","ProduktionN_lieferbar","ProduktionN_essbar","ProduktionN_nichtEssbar","ProduktionN","Verteilstation","VerteilstationN")
+dfAllNutrients <- dfAll[,c("Solawi","Kultur","Kategorie_Beretta","Calories (kcal/100g)","Protein (g/100g)","Fat (g/100g)","Ertrag_kg","Ertrag_kg_qm","Ertrag_kg_geerntet_qm","Nachverwertung_kg_total","Liefermenge_kg_VST","Nachverwertung_kg_VST")]
+names(dfAllNutrients) <- c("Solawi","Kultur","Kategorie_Beretta","Calories","Protein","Fat","Produktion","Ertrag","Ertrag_geerntet","ProduktionN","Verteilstation","VerteilstationN")
 dfCalories <- dfProtein <- dfFat <- dfAllNutrients
 dfCalories[7:ncol(dfCalories)] <- dfCalories[7:ncol(dfCalories)]*dfCalories$Calories*10
 dfCalories$Nutrient <- "Calories"
@@ -173,65 +158,6 @@ figS1
 
 figS2 <- funFigRatio("Fat")
 figS2
-
-###### Ratio losses avoidability
-## CSA
-dfAllNutrientAvoidability <- aggregate(cbind(Produktion,ProduktionN_lieferbar,ProduktionN_essbar,ProduktionN_nichtEssbar,ProduktionN,Verteilstation,VerteilstationN)~Solawi+Kategorie_Beretta+Nutrient,dfNutrient,sum)
-dfAllNutrientAvoidability$production_avoidable <- dfAllNutrientAvoidability$ProduktionN_lieferbar/(dfAllNutrientAvoidability$ProduktionN+dfAllNutrientAvoidability$Produktion)
-dfAllNutrientAvoidability$production_possiblyAvoidable <- dfAllNutrientAvoidability$ProduktionN_essbar/(dfAllNutrientAvoidability$ProduktionN+dfAllNutrientAvoidability$Produktion)
-dfAllNutrientAvoidability$production_unavoidable <- dfAllNutrientAvoidability$ProduktionN_nichtEssbar/(dfAllNutrientAvoidability$ProduktionN+dfAllNutrientAvoidability$Produktion)
-dfAllNutrientAvoidability$intermediate_possiblyAvoidable <- dfAllNutrientAvoidability$VerteilstationN/(dfAllNutrientAvoidability$VerteilstationN+dfAllNutrientAvoidability$Verteilstation)
-
-dfAllNutrientGather <- dfAllNutrientAvoidability[,c("Solawi","Nutrient","Kategorie_Beretta","production_avoidable","production_possiblyAvoidable","production_unavoidable","intermediate_possiblyAvoidable")]  %>% gather(Variable, Ratio, "production_avoidable":"intermediate_possiblyAvoidable")
-head(dfAllNutrientGather)
-dfAllNutrientGather$Stage <- sapply(strsplit(dfAllNutrientGather$Variable,"_"), `[`, 1)
-dfAllNutrientGather$Avoidability <- sapply(strsplit(dfAllNutrientGather$Variable,"_"), `[`, 2)
-dfAllNutrientGather[which(is.na(dfAllNutrientGather$Ratio)),]
-dfAllNutrientGather$Aspect <- "CSA"
-dfAvoidabilityCSA <- aggregate(Ratio~Stage+Aspect+Avoidability+Kategorie_Beretta+Nutrient,dfAllNutrientGather,mean)
-dfAvoidabilityCSAsd <- aggregate(Ratio~Stage+Aspect+Avoidability+Kategorie_Beretta+Nutrient,dfAllNutrientGather,sd)
-names(dfAvoidabilityCSAsd)[ncol(dfAvoidabilityCSAsd)] <- "RatioSD"
-dfAvoidabilityCSA <- merge(dfAvoidabilityCSA,dfAvoidabilityCSAsd,by=c("Stage","Aspect","Avoidability","Kategorie_Beretta","Nutrient"))
-
-# add household
-dfAvoidabilityCSAFinal <- rbind(dfAvoidabilityCSA,dfHouseholdAvoidability[which(dfHouseholdAvoidability$Avoidability!="gesamt"&dfHouseholdAvoidability$Kategorie_Beretta!="All"),names(dfAvoidabilityCSA)])
-
-dfAvoidabilityCSAFinal$Error_Lower <- dfAvoidabilityCSAFinal$Ratio
-dfAvoidabilityCSAFinal$Error_Upper <- dfAvoidabilityCSAFinal$Ratio+dfAvoidabilityCSAFinal$RatioSD
-
-## conventional
-unique(dfNachverwertungKonventionellMean[which(dfNachverwertungKonventionellMean$Avoidability%in%c("avoidable","possiblyAvoidable","unavoidable")),"Solawi"])
-dfAvoidabilityKonventionell <- aggregate(Ratio~Stage+Aspect+Avoidability+Kategorie_Beretta,dfNachverwertungKonventionellMean[which(dfNachverwertungKonventionellMean$Avoidability%in%c("avoidable","possiblyAvoidable","unavoidable")),],mean)
-dfAvoidabilityKonventionell$Nutrient <- "None"
-
-# merge
-dfAllAvoidability <- rbind(dfAvoidabilityCSAFinal[,names(dfAvoidabilityKonventionell)],dfAvoidabilityKonventionell)
-dfAllAvoidability$Stage <- factor(dfAllAvoidability$Stage,levels=c("production","intermediate","household"))
-
-## Plot
-funFigAvoidability <- function(nutrient){
-  ggplot(dfAllAvoidability[which(dfAllAvoidability$Stage!="intermediate"&dfAllAvoidability$Nutrient%in%c("None",nutrient)),], aes(x = Aspect, y = Ratio,fill=Avoidability)) +
-    geom_bar(position = "fill",stat = "identity", colour = "black") +
-    facet_grid(Kategorie_Beretta~Stage,labeller = as_labeller(manual.labs.english)) + ylab("Ratio")+xlab("") +
-    scale_fill_brewer(name = "Avoidability", labels = as_labeller(manual.labs.english)) +
-    ylim(0,1)+
-    theme(axis.title.y=element_text(size=10),
-          axis.title.x=element_text(size=10),
-          axis.text.x = element_text(angle = 45, hjust = 1,size=8),
-          axis.text.y = element_text(size=8),
-          legend.title = element_text(size = 10, face = "bold"),
-          legend.text = element_text(size = 8))
-  
-}
-
-fig2 <- funFigAvoidability("Calories")
-fig2
-
-figS3 <-  funFigAvoidability("Protein")
-figS3
-
-figS4 <-  funFigAvoidability("Fat")
-figS4
 
 ###### Net yield efficiency
 
@@ -347,14 +273,14 @@ funFigYield <- function(nutrient,errorLower,errorUpper,yName){
 }
 
 
-fig3 <-  funFigYield("Yield_Calories","Error_Lower_Calories","Error_Upper_Calories",expression("Yield ( kcal"~m^-2~")"))
-fig3
+fig2 <-  funFigYield("Yield_Calories","Error_Lower_Calories","Error_Upper_Calories",expression("Yield ( kcal"~m^-2~")"))
+fig2
 
-figS5 <- funFigYield("Yield_Protein","Error_Lower_Protein","Error_Upper_Protein",expression("Yield ( g"~m^-2~")"))
-figS5
+figS3 <- funFigYield("Yield_Protein","Error_Lower_Protein","Error_Upper_Protein",expression("Yield ( g"~m^-2~")"))
+figS3
 
-figS6 <- funFigYield("Yield_Fat","Error_Lower_Fat","Error_Upper_Fat",expression("Yield ( g"~m^-2~")"))
-figS6
+figS4 <- funFigYield("Yield_Fat","Error_Lower_Fat","Error_Upper_Fat",expression("Yield ( g"~m^-2~")"))
+figS4
 
 ###### crop tables
 #### losses
