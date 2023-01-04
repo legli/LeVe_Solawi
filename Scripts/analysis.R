@@ -256,6 +256,7 @@ dfNachverwertungKonventionellSummary
 head(dfNachverwertungKonventionellSummary)
 dfNachverwertungKonventionellSummary <- merge(dfNachverwertungKonventionellSummary,unique(dfAll[,c("Crop","Calories (kcal/100g)")]),by="Crop")
 
+## sample ratios based on given mean and sd
 set.seed(9999)
 lsRound <- lapply(1:1000,function(i){
   dfNachverwertungKonventionellSummary$RatioSampled <- rnorm(nrow(dfNachverwertungKonventionellSummary),mean=dfNachverwertungKonventionellSummary[,"mean"],sd=dfNachverwertungKonventionellSummary[,"sd"])
