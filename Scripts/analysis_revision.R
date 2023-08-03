@@ -120,12 +120,11 @@ dfNYEAll <- merge(dfNYEAll,CropTable,by="Kultur")
 dfReference <- dfCombinedMean[which(dfCombinedMean$Aspect=="reference"),]
 dfReference <- dfReference[,c("Crop","Stage","Ratio")]%>% spread(Stage,Ratio)
 dfNYEAll <- merge(dfNYEAll,dfReference,by="Crop")
-dfNYEAll$netYield <- (dfNYEAll$Yield_kg_m2*(1-dfNYEAll$Ratio_distribution_total ))*(1-dfNYEAll$Ratio_household_total) 
+dfNYEAll$netYield <- (dfNYEAll$Yield_kg_m2*(1-dfNYEAll$Ratio_distribution_total))*(1-dfNYEAll$Ratio_household_total) 
 dfNYEAll$netYieldReference <- (dfNYEAll$Yield_kg_m2*(1-dfNYEAll$intermediate))*(1-dfNYEAll$household) 
-# dfNYEAll$yieldReference <- (dfNYEAll$netYield/(1-dfNYEAll$household))/ (1-dfNYEAll$intermediate)
 
 dfNYEAll$gap <- ((dfNYEAll$netYield /dfNYEAll$netYieldReference)*100)
-dfNYEAll[which(dfNYEAll$Crop=="Tomatoes"&dfNYEAll$CSA=="csa3"),"gap"] <- 100
+dfNYEAll[which(dfNYEAll$Crop=="Tomatoes"&dfNYEAll$CSA=="csa3"),"gap"] <- 100 # no compensatory potential (100%)
 dfGapMean <- aggregate(gap~Crop,dfNYEAll,function(i){mean(i,na.rm=T)})
 dfGapMean$gap <- dfGapMean$gap-100
 dfGapSD <- aggregate(gap~Crop,dfNYEAll,function(i){sd(i,na.rm=T)})
